@@ -1,0 +1,138 @@
+/* =========================
+   1. RESET
+========================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================
+   2. VARIABLES
+========================= */
+:root {
+  --ink:        #0d0f14;
+  --ink-muted:  #4a4f5e;
+  --ink-faint:  #9198ab;
+
+  --surface:    #ffffff;
+  --surface-2:  #f5f6f9;
+  --surface-3:  #eceef4;
+
+  --accent:     #1a56e8;
+  --accent-2:   #0f3aab;
+  --accent-glow:#e8eefb;
+
+  --gold:       #e8a020;
+
+  --radius:     14px;
+  --radius-sm:  8px;
+
+  --nav-h:      72px;
+
+  --font-head:  'Syne', sans-serif;
+  --font-body:  'DM Sans', sans-serif;
+}
+
+/* =========================
+   3. BASE
+========================= */
+html {
+  scroll-behavior: smooth;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* =========================
+   4. LAYOUT
+========================= */
+section {
+  width: 100%;
+  padding: 100px 5%;
+}
+
+.section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* =========================
+   5. TYPOGRAPHY
+========================= */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.main-content {
+  padding-top: var(--nav-h);
+}
+
+h2 {
+  font-family: var(--font-head);
+  font-size: clamp(28px, 3.5vw, 46px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.section-sub {
+  font-size: 17px;
+  color: var(--ink-muted);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+/* =========================
+   6. RESPONSIVE
+========================= */
+@media (max-width: 1024px) {
+  .services-grid { grid-template-columns: repeat(2, 1fr); }
+  .testi-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+
+  .why-grid,
+  .contact-grid,
+  .services-grid,
+  .testi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-grid { gap: 48px; }
+
+  .process-steps {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .process-steps::before { display: none; }
+
+  .form-row { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
