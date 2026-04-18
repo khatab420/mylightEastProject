@@ -18,9 +18,15 @@
         Lighteast delivers enterprise-grade software, mobile apps, and web platforms — engineered with precision, designed for growth.
       </p>
       <div class="hero-actions">
-        <a href="#services" class="btn-primary">Explore Our Services</a>
-        <a href="#contact" class="btn-ghost">Start a Project <span class="btn-ghost-arrow">→</span></a>
-      </div>
+  <router-link to="/freeservices" class="btn-primary">
+    Explore Our Services
+  </router-link>
+
+  <router-link to="/mobile-apps" class="btn-ghost">
+    Start a Project <span class="btn-ghost-arrow">→</span>
+  </router-link>
+</div>
+
     </div>
     <div class="hero-visual">
       <div class="stat-grid">
@@ -33,20 +39,22 @@
           <div class="label">Client Satisfaction</div>
         </div>
       </div>
-      <div class="tech-badge">
-        <div class="tech-icon" style="background:#e8f0fe;">💻</div>
-        <div>
-          <p>Full-Stack Development</p>
-          <small>Web · Mobile · Cloud</small>
-        </div>
-      </div>
-      <div class="tech-badge">
-        <div class="tech-icon" style="background:#fef3e2;">🗄️</div>
-        <div>
-          <p>Database Architecture</p>
-          <small>SQL · NoSQL · Distributed</small>
-        </div>
-      </div>
+     <router-link to="/freeservices" class="tech-badge">
+  <div class="tech-icon" style="background:#e8f0fe;">💻</div>
+  <div>
+    <p>FreeServices</p>
+    <small>Free· Online · Web · Apps </small>
+  </div>
+</router-link>
+
+<router-link to="/mobile-apps" class="tech-badge">
+  <div class="tech-icon" style="background:#fef3e2;">🗄️</div>
+  <div>
+    <p>Mobile Apps</p>
+    <small>Free · Android · Apps</small>
+  </div>
+</router-link>
+
     </div>
   </div>
   </section>
