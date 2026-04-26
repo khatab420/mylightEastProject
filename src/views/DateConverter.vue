@@ -209,7 +209,7 @@ export default {
 
     // Solar Hijri (Jalali) to JD - Based on accurate algorithm by Kazemi / Birashk
     solarToJD(year, month, day) {
-      const gregYear = year + 621
+      let gregYear = year + 621
       let gregMonth = month + 3
       let gregDay = day
       if (month < 4) {

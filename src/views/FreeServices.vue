@@ -17,18 +17,103 @@
           <h2>Explore Our Tools</h2>
           <p>Click on any service card to start using it instantly</p>
         </div>
+        
+        <!-- Enhanced Search Section -->
+        <div class="search-section">
+          <div class="search-box-wrapper">
+            <div class="search-input-container">
+              <span class="search-icon">🔍</span>
+              <input
+                v-model="searchQuery"
+                @input="handleSearchInput"
+                @focus="showAutocomplete = true"
+                @blur="handleBlur"
+                type="text"
+                placeholder="Search tools... (try 'jsn' for JSON)"
+                class="search-input"
+              />
+              <button v-if="searchQuery" @click="clearSearch" class="clear-search">✕</button>
+            </div>
+            
+            <!-- Autocomplete Dropdown -->
+            <div v-if="showAutocomplete && autocompleteResults.length > 0" class="autocomplete-dropdown">
+              <div
+                v-for="(result, index) in autocompleteResults"
+                :key="result.id"
+                @mousedown="selectAutocomplete(result)"
+                class="autocomplete-item"
+                :class="{ 'selected': selectedAutocompleteIndex === index }"
+              >
+                <span class="autocomplete-icon">{{ result.icon }}</span>
+                <div class="autocomplete-content">
+                  <div class="autocomplete-name">
+                    {{ highlightMatch(result.name, searchQuery) }}
+                    <span class="autocomplete-category">{{ result.category }}</span>
+                  </div>
+                  <div class="autocomplete-description">{{ truncate(result.description, 60) }}</div>
+                </div>
+                <span class="autocomplete-score">⭐ {{ result.searchScore }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Category Filters -->
+          <div class="category-filters">
+            <button
+              @click="selectedCategory = 'all'"
+              class="category-chip"
+              :class="{ active: selectedCategory === 'all' }"
+            >
+              All
+            </button>
+            <button
+              v-for="category in categories"
+              :key="category"
+              @click="selectedCategory = category"
+              class="category-chip"
+              :class="{ active: selectedCategory === category }"
+            >
+              {{ category }}
+            </button>
+          </div>
+          
+          <!-- Search Stats -->
+          <div v-if="searchQuery && filteredServices.length > 0" class="search-stats">
+            Found {{ filteredServices.length }} tool{{ filteredServices.length !== 1 ? 's' : '' }}
+            <span v-if="searchQuery">for "{{ searchQuery }}"</span>
+          </div>
+        </div>
 
         <div class="services-grid">
           <ServiceCard
-            v-for="service in services"
+            v-for="service in paginatedServices"
             :key="service.id"
             :service="service"
             @select="openServiceModal"
           />
         </div>
+        
+        <div v-if="filteredServices.length === 0" class="no-results">
+          <span class="no-results-icon">🔍</span>
+          <h3>No tools found</h3>
+          <p>Try different keywords or browse all tools</p>
+          <button @click="clearAllFilters" class="clear-filters-btn">Clear filters</button>
+        </div>
+        
+        <!-- Pagination -->
+        <div v-if="filteredServices.length > itemsPerPage" class="pagination">
+          <button @click="currentPage--" :disabled="currentPage === 1" class="page-btn">
+            ← Previous
+          </button>
+          <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button @click="currentPage++" :disabled="currentPage === totalPages" class="page-btn">
+            Next →
+          </button>
+        </div>
       </div>
     </section>
 
+    <!-- Rest of your modal and loading components remain the same -->
     <!-- Service Modal -->
     <div v-if="selectedService" class="modal-overlay" @click.self="closeModal">
       <div class="modal-container">
@@ -70,6 +155,8 @@
 
 <script>
 import ServiceCard from '../components/ServiceCard.vue';
+import servicesdata from '../data/services';
+import Fuse from 'fuse.js'; // 👈 IMPORTANT: Add this line
 
 export default {
   name: 'FreeServices',
@@ -79,206 +166,217 @@ export default {
   data() {
     return {
       selectedService: null,
+      searchQuery: "",
+      selectedCategory: 'all',
+      showAutocomplete: false,
+      selectedAutocompleteIndex: -1,
+      currentPage: 1,
+      itemsPerPage: 12,
       isLoading: false,
       loadingServiceName: '',
-      services: [
-        {
-          id: 1,
-          name: 'Mobile Mockup Creator',
-          icon: '📱',
-          category: 'design',
-          description: 'Create stunning mobile app mockups in seconds. Choose from hundreds of device frames, backgrounds, and shadows.',
-          features: [
-            'Support for iPhone, Samsung, Pixel, and more',
-            'Custom background colors and gradients',
-            'High-resolution PNG export',
-            'Drag & drop your screenshot'
-          ],
-          route: '/mockup-creator',
-          externalUrl: null,
-          color: '#6366f1'
-        },
-        {
-          id: 2,
-          name: 'PDF Converter',
-          icon: '📄',
-          category: 'document',
-          description: 'Convert documents to PDF or extract content from PDF files. Supports Word, Excel, PPT, and images.',
-          features: [
-            'Convert to PDF from any format',
-            'Extract images from PDF',
-            'Merge multiple PDFs',
-            'Compress PDF size'
-          ],
-          route: '/pdf-converter',
-          externalUrl: null,
-          color: '#ef4444'
-        },
-        {
-          id: 3,
-          name: 'Date Converter',
-          icon: '📅',
-          category: 'utility',
-          description: 'Convert between different date formats, calculate date differences, and get timestamps.',
-          features: [
-            'Unix timestamp to human date',
-            'Date difference calculator',
-            'Multiple format support (ISO, UTC, Local)',
-            'Add/subtract days, months, years'
-          ],
-          route: '/date-converter',
-          externalUrl: null,
-          color: '#10b981'
-        },
-        {
-          id: 4,
-          name: 'Passport Size Photo',
-          icon: '🖼️',
-          category: 'photo',
-          description: 'Create passport-sized photos that meet international standards. Crop, resize, and adjust background.',
-          features: [
-            'Compliance with US, UK, EU, India standards',
-            'Automatic background removal',
-            'Print-ready 4x6 layout',
-            'Adjust lighting and contrast'
-          ],
-          route: '/passport-photo',
-          externalUrl: null,
-          color: '#f59e0b'
-        },
-        {
-          id: 5,
-          name: 'QR Code Generator',
-          icon: '📲',
-          category: 'utility',
-          description: 'Generate custom QR codes for URLs, text, Wi-Fi, vCards, and more with beautiful designs.',
-          features: [
-            'Custom colors and logos',
-            'High-resolution SVG & PNG',
-            'Trackable QR codes',
-            'Bulk QR generation'
-          ],
-          route: '/tools/qr-generator',
-          externalUrl: null,
-          color: '#8b5cf6'
-        },
-        {
-          id: 6,
-          name: 'Image Compressor',
-          icon: '🖼️',
-          category: 'photo',
-          description: 'Compress JPG, PNG, and WebP images without losing quality. Perfect for web optimization.',
-          features: [
-            'Lossless and lossy compression',
-            'Batch processing up to 20 files',
-            'Before/after preview',
-            'Custom compression level'
-          ],
-          route: '/tools/image-compressor',
-          externalUrl: null,
-          color: '#ec4899'
-        },
-        {
-          id: 7,
-          name: 'JSON Formatter',
-          icon: '{ }',
-          category: 'developer',
-          description: 'Format, validate, and minify JSON data. Perfect for developers and API testing.',
-          features: [
-            'Pretty print JSON',
-            'JSON validator with error line',
-            'Tree view visualization',
-            'JSON to CSV converter'
-          ],
-          route: '/tools/json-formatter',
-          externalUrl: null,
-          color: '#3b82f6'
-        },
-        {
-          id: 8,
-          name: 'Color Palette Generator',
-          icon: '🎨',
-          category: 'design',
-          description: 'Generate beautiful color palettes from images or create custom schemes for your projects.',
-          features: [
-            'Extract colors from any image',
-            'Analogous, complementary, triadic schemes',
-            'Export to CSS, SCSS, Tailwind',
-            'Color blindness simulator'
-          ],
-          route: '/tools/color-palette',
-          externalUrl: null,
-          color: '#14b8a6'
-        },
-        {
-          id: 9,
-          name: 'Text to Speech',
-          icon: '🔊',
-          category: 'utility',
-          description: 'Convert text to natural-sounding speech in multiple languages and voices.',
-          features: [
-            '50+ languages supported',
-            'Adjustable speed and pitch',
-            'Download as MP3',
-            'SSML support for advanced control'
-          ],
-          route: '/tools/text-to-speech',
-          externalUrl: null,
-          color: '#f97316'
-        },
-        {
-          id: 10,
-          name: 'Base64 Encoder/Decoder',
-          icon: '🔄',
-          category: 'developer',
-          description: 'Encode and decode Base64 strings instantly. Support for images, files, and text.',
-          features: [
-            'Text to Base64 and back',
-            'Image preview for data URLs',
-            'File upload support',
-            'URL-safe encoding'
-          ],
-          route: '/tools/base64',
-          externalUrl: null,
-          color: '#6b7280'
-        }
-      ]
+      fuseInstance: null,
+      autocompleteDelay: null,
+      services: servicesdata
     }
   },
-  methods: {
-    openServiceModal(service) {
-      this.selectedService = service
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
+  computed: {
+    categories() {
+      const cats = new Set(this.services.map(s => s.category));
+      return Array.from(cats).sort();
     },
-    closeModal() {
-      this.selectedService = null
-      document.body.style.overflow = 'auto'
-    },
-    launchService() {
-      this.isLoading = true
-      this.loadingServiceName = this.selectedService.name
+    
+    filteredServices() {
+      let results = [...this.services];
       
-      // Simulate loading for smooth transition
+      // Apply search with fuzzy matching
+      if (this.searchQuery && this.searchQuery.trim()) {
+        if (this.fuseInstance) {
+          const fuseResults = this.fuseInstance.search(this.searchQuery);
+          results = fuseResults.map(r => r.item);
+        }
+      }
+      
+      // Apply category filter
+      if (this.selectedCategory !== 'all') {
+        results = results.filter(service => service.category === this.selectedCategory);
+      }
+      
+      return results;
+    },
+    
+    totalPages() {
+      return Math.ceil(this.filteredServices.length / this.itemsPerPage);
+    },
+    
+    paginatedServices() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredServices.slice(start, end);
+    },
+    
+    autocompleteResults() {
+      if (!this.searchQuery || this.searchQuery.length < 2) return [];
+      
+      let results = this.filteredServices.slice(0, 8);
+      return results.map(item => ({
+        ...item,
+        searchScore: this.calculateRelevanceScore(item, this.searchQuery)
+      })).sort((a, b) => b.searchScore - a.searchScore);
+    }
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    },
+    selectedCategory() {
+      this.currentPage = 1;
+      // Don't clear search query when changing category
+      // this.searchQuery = ''; // Remove this line if you want to keep search when filtering by category
+    }
+  },
+  mounted() {
+    this.initFuse();
+  },
+  methods: {
+    initFuse() {
+      const options = {
+        includeScore: true,
+        threshold: 0.4,
+        distance: 100,
+        keys: [
+          { name: 'name', weight: 0.5 },
+          { name: 'description', weight: 0.3 },
+          { name: 'category', weight: 0.2 },
+          { name: 'features', weight: 0.1 }
+        ],
+        ignoreLocation: true,
+        useExtendedSearch: true
+      };
+      this.fuseInstance = new Fuse(this.services, options);
+    },
+    
+    handleSearchInput() {
+      clearTimeout(this.autocompleteDelay);
+      this.autocompleteDelay = setTimeout(() => {
+        this.showAutocomplete = true;
+        this.selectedAutocompleteIndex = -1;
+      }, 200);
+    },
+    
+    calculateRelevanceScore(item, query) {
+      let score = 0;
+      const lowerQuery = query.toLowerCase();
+      const lowerName = item.name.toLowerCase();
+      const lowerDesc = item.description.toLowerCase();
+      
+      // Exact match gets highest score
+      if (lowerName === lowerQuery) score += 100;
+      // Name starts with query
+      else if (lowerName.startsWith(lowerQuery)) score += 80;
+      // Name contains query
+      else if (lowerName.includes(lowerQuery)) score += 60;
+      // Fuzzy match through Fuse score
+      else if (this.fuseInstance) {
+        const result = this.fuseInstance.search(query);
+        const match = result.find(r => r.item.id === item.id);
+        if (match && match.score) {
+          score += Math.round((1 - match.score) * 50);
+        }
+      }
+      
+      // Description matches
+      if (lowerDesc.includes(lowerQuery)) score += 20;
+      
+      // Word boundary matches
+      const words = lowerQuery.split(' ');
+      for (const word of words) {
+        if (word.length >= 2) {
+          const nameWords = lowerName.split(' ');
+          if (nameWords.some(w => w.startsWith(word))) score += 15;
+          const camelCaseMatches = lowerName.match(new RegExp(word, 'gi'));
+          if (camelCaseMatches) score += 10;
+        }
+      }
+      
+      return Math.min(100, score);
+    },
+    
+    highlightMatch(text, query) {
+      if (!query || !text) return text;
+      // Escape HTML special characters
+      const escapedText = text.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+      const regex = new RegExp(`(${this.escapeRegex(query)})`, 'gi');
+      return escapedText.replace(regex, '<mark>$1</mark>');
+    },
+    
+    escapeRegex(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    },
+    
+    truncate(text, length) {
+      if (!text) return '';
+      if (text.length <= length) return text;
+      return text.substring(0, length) + '...';
+    },
+    
+    selectAutocomplete(result) {
+      this.searchQuery = result.name;
+      this.showAutocomplete = false;
+      this.openServiceModal(result);
+    },
+    
+    handleBlur() {
       setTimeout(() => {
-        this.isLoading = false
+        this.showAutocomplete = false;
+      }, 200);
+    },
+    
+    clearSearch() {
+      this.searchQuery = '';
+      this.showAutocomplete = false;
+    },
+    
+    clearAllFilters() {
+      this.searchQuery = '';
+      this.selectedCategory = 'all';
+      this.currentPage = 1;
+    },
+    
+    openServiceModal(service) {
+      this.selectedService = service;
+      document.body.style.overflow = 'hidden';
+    },
+    
+    closeModal() {
+      this.selectedService = null;
+      document.body.style.overflow = 'auto';
+    },
+    
+    launchService() {
+      this.isLoading = true;
+      this.loadingServiceName = this.selectedService.name;
+      
+      setTimeout(() => {
+        this.isLoading = false;
         
-        // If external URL, open in new tab
         if (this.selectedService.externalUrl) {
-          window.open(this.selectedService.externalUrl, '_blank')
-        } 
-        // Otherwise navigate using Vue Router
-        else if (this.selectedService.route) {
-          this.$router.push(this.selectedService.route)
+          window.open(this.selectedService.externalUrl, '_blank');
+        } else if (this.selectedService.route) {
+          this.$router.push(this.selectedService.route);
         }
         
-        this.closeModal()
-      }, 800)
+        this.closeModal();
+      }, 800);
     }
   },
   beforeDestroy() {
-    // Clean up body overflow style
-    document.body.style.overflow = 'auto'
+    document.body.style.overflow = 'auto';
+    if (this.autocompleteDelay) clearTimeout(this.autocompleteDelay);
   }
 }
 </script>
@@ -609,6 +707,306 @@ export default {
   
   .modal-header h3 {
     font-size: 1.25rem;
+  }
+
+  
+}
+
+.search-box-wrapper {
+  max-width: 500px;
+  margin: 0 auto 30px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 40px;
+  border: 1px solid #e2e8f0;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.2s;
+}
+
+.search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.no-results {
+  text-align: center;
+  color: #64748b;
+  margin-top: 20px;
+}
+
+.search-section {
+  max-width: 800px;
+  margin: 0 auto 40px;
+}
+
+.search-box-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.search-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+  background: white;
+}
+
+.search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.clear-search:hover {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  border: 1px solid #e2e8f0;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background: #f8fafc;
+}
+
+.autocomplete-icon {
+  font-size: 1.5rem;
+  min-width: 40px;
+}
+
+.autocomplete-content {
+  flex: 1;
+}
+
+.autocomplete-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.autocomplete-name mark {
+  background: #fef08a;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.autocomplete-category {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  color: #475569;
+  text-transform: capitalize;
+}
+
+.autocomplete-description {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.autocomplete-score {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+/* Category Filters */
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.category-chip {
+  padding: 6px 16px;
+  border-radius: 40px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: capitalize;
+}
+
+.category-chip:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.category-chip.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border-color: transparent;
+}
+
+/* Search Stats */
+.search-stats {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 20px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.no-results-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.no-results h3 {
+  font-size: 1.5rem;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.no-results p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.clear-filters-btn {
+  padding: 8px 20px;
+  border-radius: 40px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #6366f1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-filters-btn:hover {
+  background: #6366f1;
+  color: white;
+  border-color: transparent;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+  padding: 20px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .autocomplete-item {
+    flex-wrap: wrap;
+  }
+  
+  .autocomplete-score {
+    margin-left: auto;
+  }
+  
+  .category-filters {
+    gap: 6px;
+  }
+  
+  .category-chip {
+    font-size: 0.75rem;
+    padding: 4px 12px;
   }
 }
 </style>

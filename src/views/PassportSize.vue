@@ -1,5 +1,5 @@
 <template>
-  <div class="passport-size-app">
+  <div v-if="selectedStandard" class="passport-size-app">
     <header class="app-header">
       <h1>🛂 Passport Photo Studio</h1>
       <p>Create compliant passport photos for US, UK, EU, India & more</p>
@@ -442,8 +442,7 @@ export default {
 <style scoped>
 .passport-size-app {
   max-width: 1400px;
-  margin-top: 80px;
-  margin: 0 auto;
+   margin: 80px auto 0;
   padding: 20px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

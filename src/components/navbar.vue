@@ -9,11 +9,12 @@
       <span class="logo-dot"></span>Lighteast
     </a>
    <ul class="nav-links">
-  <li><router-link to="/service">Services</router-link></li>
+  <li><router-link to="/services">Services</router-link></li>
   <li><router-link to="/about">About</router-link></li>
-  <li><router-link to="/process">Process</router-link></li>
-  <li><router-link to="/client">Clients</router-link></li>
+  <li><router-link to="/processes">Process</router-link></li>
+  <li><router-link to="/clients">Clients</router-link></li>
   <li><router-link to="/contact">Contact</router-link></li>
+  <li><router-link to="/freeservices"> Free Services </router-link></li>
 </ul>
 
     <a href="#contact" class="nav-cta">Get a Quote</a>
